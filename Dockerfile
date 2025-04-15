@@ -1,40 +1,50 @@
-# Use the official Node.js image
+# Étape de build
 FROM node:18-alpine AS builder
 
-# Set the working directory
+# Crée un utilisateur dédié pour la sécurité
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
-# Copy package files
+# Copie seulement les fichiers nécessaires pour installer les dépendances
 COPY package*.json ./
 
-# Install dependencies
+# Installe les dépendances sans devDependencies
 RUN npm install
 
-# Copy the rest of the source code
-COPY . .
+# Copie les sources et le tsconfig
+COPY tsconfig.json ./
+COPY src ./src
 
-# Build the TypeScript application
+# Build TypeScript selon ton tsconfig
 RUN npm run build
 
-# Use a smaller image for the final stage
+# Étape finale avec une image légère
 FROM node:18-alpine
 
-# Set the working directory
 WORKDIR /app
 
-# Copy built files and package files from the builder stage
-COPY --from=builder /app/dist ./dist
+# Copie les dépendances en production
 COPY --from=builder /app/package*.json ./
 
-# Install only production dependencies
+# Installe uniquement les dépendances en mode production
 RUN npm ci --omit=dev
 
-# Indicate that NOTION_API_TOKEN is required but don't set a value
-# This should be provided via Coolify environment variables
-ENV NOTION_API_TOKEN=""
+# Copie uniquement les fichiers build générés
+COPY --from=builder /app/build ./build
 
-# Expose port 3000 (le port par défaut du serveur MCP)
+# Récupère l'utilisateur non-root de la première étape
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+# Utilise l'utilisateur non-root pour exécuter l'app
+USER appuser
+
+# Expose le port de l'app
 EXPOSE 3000
 
-# Command to run the application
-CMD ["node", "dist/index.js"]
+# Indique que cette variable doit être fournie via Coolify (ne jamais mettre directement ici)
+ENV NOTION_API_TOKEN=${NOTION_API_KEY}
+
+# Lance l'application
+CMD ["node", "build/index.js"]
