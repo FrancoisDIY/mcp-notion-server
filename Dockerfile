@@ -9,8 +9,8 @@ WORKDIR /app
 # Copie seulement les fichiers nécessaires pour installer les dépendances
 COPY package*.json ./
 
-# Installe les dépendances sans devDependencies
-RUN npm install
+# Installe les dépendances sans déclencher de scripts inutiles
+RUN npm install --ignore-scripts
 
 # Copie les sources et le tsconfig
 COPY tsconfig.json ./
