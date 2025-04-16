@@ -27,6 +27,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Installer curl pour le healthcheck
+RUN apk --no-cache add curl
+
 # Copie les dépendances en production
 COPY --from=builder /app/package*.json ./
 
@@ -48,6 +51,10 @@ EXPOSE 3000
 
 # Cette variable sera fournie au moment de l'exécution
 ENV NOTION_API_TOKEN=""
+
+# Ajouter un healthcheck simple
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
 
 # Lance l'application
 CMD ["node", "build/index.js"]
