@@ -6,13 +6,15 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copie d'abord tous les fichiers nécessaires pour le build
+# Copie d'abord tous les fichiers nécessaires pour installer les dépendances
 COPY package*.json ./
+
+# Désactive temporairement le script prepare en créant un package.json modifié
+RUN cat package.json | grep -v '"prepare":' > package.json.temp && mv package.json.temp package.json
+
+# Copie les sources et le tsconfig
 COPY tsconfig.json ./
 COPY src ./src
-
-# Désactive le script prepare pour éviter l'exécution en boucle de build
-RUN npm set-script prepare ""
 
 # Installe toutes les dépendances (y compris dev pour pouvoir builder)
 RUN npm install
