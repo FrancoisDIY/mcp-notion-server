@@ -30,25 +30,12 @@ WORKDIR /app
 # Installer les outils nécessaires
 RUN apk --no-cache add curl
 
-# Créer un fichier wrapper qui lance à la fois l'application principale et un petit serveur HTTP
-RUN echo '#!/bin/sh\n\
-# Fonction pour gérer le signal de fermeture\n\
-trap "kill \$APP_PID; exit" SIGINT SIGTERM\n\
-\n\
-# Démarre l\'application principale en arrière-plan\n\
-node build/index.js &\n\
-APP_PID=$!\n\
-\n\
-# Lance un petit serveur HTTP en arrière-plan pour les healthchecks\n\
-while true; do { echo -e "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK"; } | nc -l -p 3000 > /dev/null 2>&1; done &\n\
-HTTP_PID=$!\n\
-\n\
-# Attend que l\'application principale se termine\n\
-wait $APP_PID\n\
-' > /app/start.sh && chmod +x /app/start.sh
-
-# Installe netcat pour le serveur HTTP simple
+# Installer netcat pour le serveur HTTP simple
 RUN apk --no-cache add busybox-extras
+
+# Copie le script de démarrage
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Copie les dépendances en production
 COPY --from=builder /app/package*.json ./
