@@ -27,12 +27,6 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Installer les outils pour le healthcheck
-RUN apk --no-cache add curl procps
-
-# Créer un script de healthcheck simple qui retourne toujours 0 (succès)
-RUN echo '#!/bin/sh\nexit 0' > /healthcheck.sh && chmod +x /healthcheck.sh
-
 # Copie les dépendances en production
 COPY --from=builder /app/package*.json ./
 
@@ -54,10 +48,6 @@ EXPOSE 3000
 
 # Cette variable sera fournie au moment de l'exécution
 ENV NOTION_API_TOKEN=""
-
-# Healthcheck qui renvoie toujours un succès
-HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
-  CMD /healthcheck.sh
 
 # Lance l'application
 CMD ["node", "build/index.js"]
