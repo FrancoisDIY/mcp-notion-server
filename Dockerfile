@@ -6,17 +6,18 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copie seulement les fichiers nécessaires pour installer les dépendances
+# Copie d'abord tous les fichiers nécessaires pour le build
 COPY package*.json ./
-
-# Installe les dépendances sans déclencher de scripts inutiles
-RUN npm install --ignore-scripts
-
-# Copie les sources et le tsconfig
 COPY tsconfig.json ./
 COPY src ./src
 
-# Build TypeScript selon ton tsconfig
+# Désactive le script prepare pour éviter l'exécution en boucle de build
+RUN npm set-script prepare ""
+
+# Installe toutes les dépendances (y compris dev pour pouvoir builder)
+RUN npm install
+
+# Build l'application
 RUN npm run build
 
 # Étape finale avec une image légère
@@ -43,8 +44,8 @@ USER appuser
 # Expose le port de l'app
 EXPOSE 3000
 
-# Indique que cette variable doit être fournie via Coolify (ne jamais mettre directement ici)
-ENV NOTION_API_TOKEN=${NOTION_API_KEY}
+# Cette variable sera fournie au moment de l'exécution
+ENV NOTION_API_TOKEN=""
 
 # Lance l'application
 CMD ["node", "build/index.js"]
